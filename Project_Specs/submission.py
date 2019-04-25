@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-25 14:40:19
+@LastEditTime: 2019-04-25 14:58:57
 '''
 
 # Import your files here...
@@ -44,6 +44,25 @@ def read_StateFile(State_File):
             transition_prob[state1][state2] = weight
             count = count + 1
         
+        # Convert weight into probability.
+        for keys,values in transition_prob.items():
+            total = 0
+            for value in values.values():
+                total += value
+            # Scan each state in state_set.
+            for state in state_set.values():
+                # Case 1: state is already existing
+                if state in values.keys():
+                    # A[i,j] = (n(i,j)+1)/(n(i)+N-1)
+                    transition_prob[keys][state] = (transition_prob[keys][state]+1)/(total+N-1)
+                # Case 2: state is not existing
+                else:
+                    if state == state_set['BEGIN']:
+                        # For the BEGIN state, there is no transition to it, i.e., the probability is indeed 0.0.
+                        transition_prob.setdefault(keys,{})[state] = 0.0
+                    else:
+                        transition_prob.setdefault(keys,{})[state] = 1/(total+N-1)
+                        
     file.close()
     return transition_prob
 
