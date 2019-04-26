@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-26 19:43:36
+@LastEditTime: 2019-04-26 19:51:35
 '''
 
 # Import your files here...
@@ -133,11 +133,17 @@ def SymbolFileProcessing(Symbol_File, state_set,Smooth):
 def query_to_token(line): 
     tokens = re.findall(r"[A-Za-z0-9.]+|[,|\.|/|;|\'|`|\[|\]|<|>|\?|:|\"|\{|\}|\~|!|@|#|\$|%|\^|&|\(|\)|\-|=|\_|\+]", line)
     return tokens
+
+# 设计viterbi内置算法
+def viterbi():
+    pass
     
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
-    pass # Replace this line with your implementation...
-
+    # assume smooth = 1
+    N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
+    M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
+    return
 
 # Question 2
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
