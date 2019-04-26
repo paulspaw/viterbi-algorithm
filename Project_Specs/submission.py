@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-25 15:56:41
+@LastEditTime: 2019-04-26 19:43:36
 '''
 
 # Import your files here...
@@ -13,21 +13,33 @@ import json
 import re
 import numpy as np
 
+'''
+    N：隐藏状态数 hidden states
+
+    M：观测状态数 observed states
+
+    A：状态转移矩阵 transition matrix
+
+    B：发射矩阵  emission matrix
+    
+    pi：初始隐状态向量 initial state vector
+'''
+
 # deal with state_file
-def read_StateFile(State_File,Smooth):
+def StateFileProcessing(State_File,Smooth):
     with open (State_File,'r') as file:
         N = int(file.readline())              # integer N , which is the number of states
         state_set = dict()                    # store the set of state
         transition_prob = dict()              # store transition probability  
         state_prob = dict()                   # store state initialising probability
         ID = 0                                # ID of states
-        count = 0                             # number of transitions
+        #count = 0                             # number of transitions
 
         # Scan descriptive name of the states.
         while ID < N:
                 state_name = file.readline().strip()
                 state_set[state_name] = ID
-                ID = ID + 1
+                ID += 1
                 
         # Scan the transitions and weight.
         while True:
@@ -40,9 +52,8 @@ def read_StateFile(State_File,Smooth):
             state2 = int(items[1])      # The state after the transition
             weight = int(items[2])      # The weight of the transition
 
-            transition_prob.setdefault(state1,{})
-            transition_prob[state1][state2] = weight
-            count = count + 1
+            transition_prob.setdefault(state1,{})[state2] = weight
+            
         
         # Convert weight into probability.
         for keys,values in transition_prob.items():
@@ -70,12 +81,58 @@ def read_StateFile(State_File,Smooth):
             state_prob[state] = 1/N
                         
     file.close()
-    return N, state_set, transition_prob, state_prob,total
+    return N, state_set, transition_prob, state_prob 
 
 # deal with symbol file 
-def read_symbol(Symbol_File, state_set):
-    pass
+def SymbolFileProcessing(Symbol_File, state_set,Smooth):
+    with open(Symbol_File,'r') as file:
+        M = int(file.readline())        # integer M, which is the number of symbols. M个元素
+        symbol_set = dict()             # store the set of symbol 元素的种类
+        emission_prob = dict()          # store emission probability    状态 - 种类 - 数量    
+        ID = 0    
+        
+        # Scan descriptive name of the symbols.
+        while ID < M:
+            symbol = file.readline().strip()
+            symbol_set[symbol] = ID
+            ID += 1
 
+        # Scan the frequency of emissions.
+        while True:
+            line = file.readline()
+            if not line:
+                break
+            items = line.split()
+            
+            state = int(items[0])      # The state
+            ele_type = int(items[1])      # The type of the element
+            amount = int(items[2])      # The quantity of the element
+
+            emission_prob.setdefault(state,{})[ele_type] = amount
+
+        # Convert frequency into probability.
+        for keys,values in emission_prob.items():
+            total = 0
+            for value in values.values():
+                total += value
+            # Scan each symbol in symbol_set.
+            for symbol in symbol_set.values():
+                # Case-I: symbol is already existing
+                if symbol in values.keys():
+                    emission_prob[keys][symbol] = (emission_prob[keys][symbol]+(1 * Smooth))/(total+M*Smooth+1)
+                # Case-II: symbol is not existing
+                else:                     
+                    emission_prob.setdefault(keys,{})[symbol] = 1/(total+M+1)
+            # "UNK" symbol 
+            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # need to be  fixed
+                                      
+    file.close()
+    return M, symbol_set, emission_prob #元素的数量，元素的名称，元素的Emission Probabilities
+
+# 处理query的每一行
+def query_to_token(line): 
+    tokens = re.findall(r"[A-Za-z0-9.]+|[,|\.|/|;|\'|`|\[|\]|<|>|\?|:|\"|\{|\}|\~|!|@|#|\$|%|\^|&|\(|\)|\-|=|\_|\+]", line)
+    return tokens
     
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -95,5 +152,7 @@ if __name__ == "__main__":
     State_File ='./toy_example/State_File'
     Symbol_File='./toy_example/Symbol_File'
     Query_File ='./toy_example/Query_File'
-    _,_,_,state_prob,total = read_StateFile(State_File,Smooth=1)
-    print(state_prob)
+    #N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
+    #M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
+    token = query_to_token("8/23-35 Bar%ker St., Kings'ford, NSW&= 2032")
+    print(token)
