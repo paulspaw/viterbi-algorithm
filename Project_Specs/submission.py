@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-27 16:13:48
+@LastEditTime: 2019-04-27 16:43:22
 '''
 
 # Import your files here...
@@ -64,7 +64,6 @@ def StateFileProcessing(State_File,Smooth):
             for state in state_set.values():
                 # Case 1: state is already existing
                 if state in values.keys():
-                    # A[i,j] = (n(i,j)+1)/(n(i)+N-1)
                     transition_prob[keys][state] = (transition_prob[keys][state] + Smooth)/(total + (N-1) * Smooth)
                 # Case 2: state is not existing
                 else:
@@ -117,14 +116,15 @@ def SymbolFileProcessing(Symbol_File, state_set,Smooth):
                 total += value
             # Scan each symbol in symbol_set.
             for symbol in symbol_set.values():
-                # Case-I: symbol is already existing
+                # Case 1: symbol is already existing
                 if symbol in values.keys():
                     emission_prob[keys][symbol] = (emission_prob[keys][symbol]+(1 * Smooth))/(total+M*Smooth+1)
-                # Case-II: symbol is not existing
-                else:                     
+                # Case 2: symbol is not existing
+                else:   
+                    # ⚠️SMOOTH 部分需要调整                  
                     emission_prob.setdefault(keys,{})[symbol] = 1/(total+M+1)
             # "UNK" symbol 
-            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # need to be fixed
+            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # ⚠️need to be fixed
                                       
     file.close()
     return M, symbol_set, emission_prob #元素的数量，元素的名称，元素的Emission Probabilities
@@ -136,19 +136,24 @@ def query_to_token(line):
 
 # 设计viterbi内置算法
 def viterbi(N,Obs,PI,MatrixA,MatrixB):
-    COL = N
-    ROW = len(Obs)
+    ROW = N
+    COL = len(Obs)
     # initialized max probility matrix
     max_prob_matrix = np.zeros((ROW,COL), float)
 
     # backtracking matrix -- 用来记录到达t时刻的路径 -- list
     backtrack = [[[]] * COL for i in range(ROW)]
 
+    print(max_prob_matrix)
+    # Step 1: Initialize local states when t=0.
+    # # 初始状态 PI * 第一个盒子的 
+    # max_prob_matrix[:,0] = PI * MatrixB[:,Obs[0]]
+    
     # 矩阵形式检验
     for i in backtrack:
         print(i)
    
-    return 0,backtrack
+    return MatrixB,max_prob_matrix
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -198,7 +203,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             # claculate path and maximum probility
             path, max_prob_path = viterbi(N,Obs,PI,MatrixA,MatrixB)
             print("-----------------------------")
-            
+            break
     return path,max_prob_path
 
 # Question 2
