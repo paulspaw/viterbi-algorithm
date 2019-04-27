@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-26 19:51:35
+@LastEditTime: 2019-04-27 16:13:48
 '''
 
 # Import your files here...
@@ -124,7 +124,7 @@ def SymbolFileProcessing(Symbol_File, state_set,Smooth):
                 else:                     
                     emission_prob.setdefault(keys,{})[symbol] = 1/(total+M+1)
             # "UNK" symbol 
-            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # need to be  fixed
+            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # need to be fixed
                                       
     file.close()
     return M, symbol_set, emission_prob #元素的数量，元素的名称，元素的Emission Probabilities
@@ -135,15 +135,71 @@ def query_to_token(line):
     return tokens
 
 # 设计viterbi内置算法
-def viterbi():
-    pass
-    
+def viterbi(N,Obs,PI,MatrixA,MatrixB):
+    COL = N
+    ROW = len(Obs)
+    # initialized max probility matrix
+    max_prob_matrix = np.zeros((ROW,COL), float)
+
+    # backtracking matrix -- 用来记录到达t时刻的路径 -- list
+    backtrack = [[[]] * COL for i in range(ROW)]
+
+    # 矩阵形式检验
+    for i in backtrack:
+        print(i)
+   
+    return 0,backtrack
+
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
     # assume smooth = 1
+    # N -- 有多少个状态
+    # state_set -- 状态集合 
+    # transition_prob -- 转移矩阵
+    # state_prob -- 初始状态概率值 π (暂时假定状态均匀分布)
     N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
+    
+    # M -- 有多少个观测值
+    # symbol_set -- 观测值集合
+    # emission_prob -- 状态释放观测值的矩阵
     M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
-    return
+    # deal with Query File.
+    with open(Query_File, 'r') as file:
+        while True:
+            line = file.readline()
+            if not line:
+                break
+            # 每一行进行query_to_token处理
+            token = query_to_token(line)      
+
+            # Generate observations and initialized state probabiltiy.
+            # M 最大值为UNK,假设所有为UNK
+            Obs = [M for i in range(len(token))]
+            #替换相应的值为对应数字
+            for i in range(len(token)):
+                if token[i] in symbol_set.keys():
+                    Obs[i] = symbol_set[token[i]]
+            # initialized transition matrix A
+            MatrixA = np.zeros((N,N))
+            # initialized emission matrix B
+            MatrixB = np.zeros((N,M+1))
+            # initialized state distribution
+            PI = [0 for i in range(N)]
+
+            for i in range(N):
+                PI[i] = state_prob[i]  
+                for j in range(N):
+                    MatrixA[i][j] = transition_prob[i][j]
+                for k in range(M+1):
+                    if i < N-2:
+                        MatrixB[i][k] = emission_prob[i][k]
+                    else:
+                        MatrixB[i][k] = 0.0
+            # claculate path and maximum probility
+            path, max_prob_path = viterbi(N,Obs,PI,MatrixA,MatrixB)
+            print("-----------------------------")
+            
+    return path,max_prob_path
 
 # Question 2
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
@@ -160,5 +216,6 @@ if __name__ == "__main__":
     Query_File ='./toy_example/Query_File'
     #N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
     #M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
-    token = query_to_token("8/23-35 Bar%ker St., Kings'ford, NSW&= 2032")
-    print(token)
+    # token = query_to_token("8/23-35 Bar%ker St., Kings'ford, NSW&= 2032")
+    result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    print(result)
