@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-27 16:43:22
+@LastEditTime: 2019-04-27 22:54:05
 '''
 
 # Import your files here...
@@ -135,25 +135,36 @@ def query_to_token(line):
     return tokens
 
 # 设计viterbi内置算法
-def viterbi(N,Obs,PI,MatrixA,MatrixB):
-    ROW = N
-    COL = len(Obs)
-    # initialized max probility matrix
-    max_prob_matrix = np.zeros((ROW,COL), float)
-
+def viterbi(N,Obs,PI,A,B):
+    T = len(Obs)
+    delta = np.zeros((N,T), float)
     # backtracking matrix -- 用来记录到达t时刻的路径 -- list
-    backtrack = [[[]] * COL for i in range(ROW)]
-
-    print(max_prob_matrix)
+    psi = [[[]] * T for i in range(N)]
+    # psi = np.zeros((T,N), int)     
+  
     # Step 1: Initialize local states when t=0.
-    # # 初始状态 PI * 第一个盒子的 
-    # max_prob_matrix[:,0] = PI * MatrixB[:,Obs[0]]
+    delta[:,0] = PI * B[:,Obs[0]]
+    # Step 2
+    for t in range(1, T):
+    # t时刻，在状态s2确定的条件下，
+        for s2 in range(N):
+            # 遍历一次所有的状态，这些状态s1被认为是在t-1时间的结果
+            for s1 in range(N):
+                prob = delta[s1, t-1] * A[s1,s2] * B[s2,Obs[t]]
+                if prob > delta[s2, t]:
+                    delta[s2, t] = prob   # 记录最大概率值
+                    psi[s2][t] += [s1] #⚠️ path为什么总是不对？？？
+    #最大概率
+    max_prob = max(delta.T[-1])
+    index_last = (delta.T.tolist()[-1]).index(max(delta.T.tolist()[-1]))
+    # path = np.zeros(T, int)         # initialize blank path
+    # path[-1] = state_last           # path is from tail to head
     
-    # 矩阵形式检验
-    for i in backtrack:
-        print(i)
-   
-    return MatrixB,max_prob_matrix
+    # for t in range(T - 2, -1, -1):
+    #     # 在t+1时刻产生的最大的概率值对应的状态
+    #     path[t] = psi2[[t + 1], path[t + 1]]
+    # print(psi2)
+    return delta,psi
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -223,4 +234,8 @@ if __name__ == "__main__":
     #M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
     # token = query_to_token("8/23-35 Bar%ker St., Kings'ford, NSW&= 2032")
     result = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    print(result)
+    print('delta matrix:')
+    print(result[0])
+    print("----------------------\npai matrix:")
+    for i in result[1]:
+        print(i)
