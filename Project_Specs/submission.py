@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-27 22:54:05
+@LastEditTime: 2019-04-29 13:09:03
 '''
 
 # Import your files here...
@@ -137,10 +137,10 @@ def query_to_token(line):
 # 设计viterbi内置算法
 def viterbi(N,Obs,PI,A,B):
     T = len(Obs)
-    delta = np.zeros((N,T), float)
+    delta = np.zeros((N,T))
     # backtracking matrix -- 用来记录到达t时刻的路径 -- list
-    psi = [[[]] * T for i in range(N)]
-    # psi = np.zeros((T,N), int)     
+    # psi = [[[]] * T for i in range(N)]
+    psi = np.zeros((N,T),int)    
   
     # Step 1: Initialize local states when t=0.
     delta[:,0] = PI * B[:,Obs[0]]
@@ -153,18 +153,21 @@ def viterbi(N,Obs,PI,A,B):
                 prob = delta[s1, t-1] * A[s1,s2] * B[s2,Obs[t]]
                 if prob > delta[s2, t]:
                     delta[s2, t] = prob   # 记录最大概率值
-                    psi[s2][t] += [s1] #⚠️ path为什么总是不对？？？
+                    psi[s2,t] = s1
     #最大概率
     max_prob = max(delta.T[-1])
     index_last = (delta.T.tolist()[-1]).index(max(delta.T.tolist()[-1]))
-    # path = np.zeros(T, int)         # initialize blank path
-    # path[-1] = state_last           # path is from tail to head
-    
-    # for t in range(T - 2, -1, -1):
-    #     # 在t+1时刻产生的最大的概率值对应的状态
-    #     path[t] = psi2[[t + 1], path[t + 1]]
-    # print(psi2)
-    return delta,psi
+    path = [index_last]
+    col = -1
+    while True:
+        if T <= -col:
+            break
+        t = psi[index_last,col]
+        path.append(t)
+        index_last = t
+        col -= 1
+    path = path[::-1]
+    return path,max_prob
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
@@ -212,10 +215,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
                     else:
                         MatrixB[i][k] = 0.0
             # claculate path and maximum probility
-            path, max_prob_path = viterbi(N,Obs,PI,MatrixA,MatrixB)
+            path, max_prob = viterbi(N,Obs,PI,MatrixA,MatrixB)
             print("-----------------------------")
-            break
-    return path,max_prob_path
+            output = []
+            output.append(state_set['BEGIN'])
+            output.extend(path)
+            output.append(state_set['END'])
+            output.append(max_prob)
+            print(output)
+    return output
 
 # Question 2
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
@@ -233,9 +241,8 @@ if __name__ == "__main__":
     #N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
     #M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
     # token = query_to_token("8/23-35 Bar%ker St., Kings'ford, NSW&= 2032")
-    result = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    print('delta matrix:')
-    print(result[0])
-    print("----------------------\npai matrix:")
-    for i in result[1]:
-        print(i)
+    viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    # print('delta matrix:')
+    # print(result[0])
+    # print("----------------------\npai matrix:")
+    # result[1]
