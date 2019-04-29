@@ -124,8 +124,8 @@ def SymbolFileProcessing(Symbol_File, state_set,Smooth):
                     # ⚠️SMOOTH 部分需要调整                  
                     emission_prob.setdefault(keys,{})[symbol] = 1/(total+M+1)
             # "UNK" symbol 
-            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # ⚠️need to be fixed
-                                      
+            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # ⚠️need to be fixed 
+
     file.close()
     return M, symbol_set, emission_prob #元素的数量，元素的名称，元素的Emission Probabilities
 
@@ -183,6 +183,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
     # emission_prob -- 状态释放观测值的矩阵
     M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
     # deal with Query File.
+    results = []
     with open(Query_File, 'r') as file:
         while True:
             line = file.readline()
@@ -221,9 +222,10 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the 
             output.append(state_set['BEGIN'])
             output.extend(path)
             output.append(state_set['END'])
-            output.append(max_prob)
+            output.append(np.log(max_prob))
             print(output)
-    return output
+            results.append(output)
+    return results
 
 # Question 2
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
