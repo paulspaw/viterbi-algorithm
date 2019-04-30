@@ -165,7 +165,7 @@ def viterbi(N,Obs,PI,END,A,B):
         maxIndex = maxState
         col -= 1
         path[col-1] = maxState
-    path[-1] = round(np.log(maxProb),6)
+    path[-1] = np.log(maxProb)
     
     return path
 
@@ -247,7 +247,7 @@ def top_k(N,Obs,PI,END,A,B,K):
             col -= 1
             path[k][col-1] = maxState
         maxProb = np.log(maxProb * END[path[k][-2]])
-        path[k][-1] = round(maxProb,6)  
+        path[k][-1] = maxProb
         
     return path
 
@@ -264,12 +264,11 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the h
             
             Obs = query_to_token(line, symbolSet)
             result = top_k(N,Obs,PI,END,A,B,k)
-            
-            
-            for index in range(len(result)):
-                result[index].insert(0, stateSet["BEGIN"])
-                result[index].insert(-1, stateSet["END"]) 
-            results.append(result)
+
+            for sub in result:
+                sub.insert(0, stateSet["BEGIN"])
+                sub.insert(-1, stateSet["END"]) 
+                results.append(sub)
     file.close()
     return results
 
