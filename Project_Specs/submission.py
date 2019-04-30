@@ -5,11 +5,10 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-04-30 11:25:45
+@LastEditTime: 2019-05-01 00:54:29
 '''
 
 # Import your files here...
-import json
 import re
 import numpy as np
 
@@ -274,17 +273,39 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the h
 
 # Question 3 + Bonus
 def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the heading of the function
-    pass # Replace this line with your implementation...
+    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=0.01)
+    symbolSet, B = SymbolFileProcessing(N, Symbol_File, Smooth=0.01)
 
+    results = []
+    with open(Query_File, 'r') as file:
+        while True:
+            line = file.readline()
+            if not line:
+                break
+            
+            Obs = query_to_token(line, symbolSet)
+            result = viterbi(N,Obs,PI,END,A,B)
+            result.insert(0, stateSet["BEGIN"])
+            result.insert(-1, stateSet["END"])
+            results.append(result)
+    file.close()
+
+    return results
 
 if __name__ == "__main__":
-    State_File ='./toy_example/State_File'
-    Symbol_File='./toy_example/Symbol_File'
-    Query_File ='./toy_example/Query_File'
-    # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    viterbi_result = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
-    for row in viterbi_result:
-        print(row)
+    import time;  # 引入time模块
+ 
+    State_File ='./dev_set/State_File'
+    Symbol_File='./dev_set/Symbol_File'
+    Query_File ='./dev_set/Query_File'
+    ticks = time.time()
+    viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
+    viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
+    ticks2 = time.time()
+    print(ticks2 - ticks)
+    # for row in viterbi_result:
+    #     print(row)
 
 
 
