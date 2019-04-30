@@ -134,6 +134,67 @@ def viterbi(N,Obs,PI,END,A,B):
     
     return path
 
+def top_k(N,Obs,PI,END,A,B,K):
+    path = []
+    T = len(Obs)
+    delta = np.zeros((N, T))
+    deltaCopy = np.zeros((N, T))
+    record = np.zeros((N, T), int)
+    psi = [[[]] * T for i in range(N)]
+
+    delta[:, 0] = PI * B[:, Obs[0]]
+    deltaCopy[:, 0] = PI * B[:, Obs[0]]
+    for ts in range(1, T):      
+        for sn in range(N):     
+            for sp in range(N):  
+                prob = delta[sp][ts-1] * A[sp][sn] * B[sn][Obs[ts]]
+                if prob > delta[sn][ts]:
+                    delta[sn][ts] = prob
+                    deltaCopy[sn][ts] = prob
+                    record[sn][ts] = sp
+    delta[:, -1] = END * delta[:, -1]
+    deltaCopy[:, -1] = END * deltaCopy[:, -1]
+    
+    maxProb = []
+    maxIndex = []
+    tempK = K
+    while tempK > 0:
+        tempK -= 1
+        maxTempProb = 0
+        maxTempIndex = 0
+        for index in range(len(delta)):
+            if len(maxIndex):
+                if index == maxIndex[-1]:
+                    continue
+            if delta[index][-1] > maxTempProb:
+                maxTempProb = delta[index][-1]
+                maxTempIndex = index
+            elif delta[index][-1] == maxTempProb:
+                for i in range(1, T):
+                    if delta[index][-1-i] > maxTempProb:
+                        maxTempProb = delta[index][-1]
+                        maxTempIndex = index
+        maxProb.append(maxTempProb)
+        maxIndex.append(maxTempIndex)
+    
+    pathes = []
+    for index in range(len(maxIndex)):
+        maxTempIndex = maxIndex[index]
+        path = [maxTempIndex]
+        col = -1
+        while True:
+            if T <= -col:
+                break
+            maxTempState = record[maxTempIndex][col]
+            maxTempIndex = maxTempState
+            path.append(maxTempState)
+            col -= 1
+        path = list(reversed(path))
+        path.append(round(np.log(maxProb[index]),6))
+        pathes.append(path) 
+        
+    return T, pathes
+
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
     N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
@@ -151,13 +212,32 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             result.insert(0, stateSet["BEGIN"])
             result.insert(-1, stateSet["END"])
             results.append(result)
-            print(result)
     file.close()
+
     return results
 
 # Question 2
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
-    pass # Replace this line with your implementation...
+    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
+    symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
+    results = [[]for i in range(k)]
+    
+    with open(Query_File, 'r') as file:
+        while True:
+            line = file.readline()
+            if not line:
+                break
+            
+            Obs = query_to_token(line, symbolSet)
+            t, result = top_k(N,Obs,PI,END,A,B,k)
+            
+            for index in range(len(result)):
+                result[index].insert(0, stateSet["BEGIN"])
+                result[index].insert(-1, stateSet["END"]) 
+                results[index].append(result[index])
+    file.close()
+
+    return results
 
 
 # Question 3 + Bonus
@@ -169,4 +249,5 @@ if __name__ == "__main__":
     State_File ='./toy_example/State_File'
     Symbol_File='./toy_example/Symbol_File'
     Query_File ='./toy_example/Query_File'
-    viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    viterbi_result = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
