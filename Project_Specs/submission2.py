@@ -132,10 +132,11 @@ def viterbi(N,Obs,PI,A,B):
         path.append(maxState)
         col -= 1
     path = list(reversed(path))
-    path.append(np.log(maxProb))
+    path.append(round(np.log(maxProb),6))
     
     return path
 
+# Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
     N, stateSet, A, PI = StateFileProcessing(State_File,Smooth=1)
     symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
@@ -155,6 +156,15 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             print(result)
     file.close()
     return results
+
+# Question 2
+def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
+    pass # Replace this line with your implementation...
+
+
+# Question 3 + Bonus
+def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the heading of the function
+    pass # Replace this line with your implementation...
 
 
 if __name__ == "__main__":
