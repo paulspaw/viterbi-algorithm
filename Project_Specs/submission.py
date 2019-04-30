@@ -5,7 +5,7 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-05-01 02:37:40
+@LastEditTime: 2019-05-01 02:38:51
 '''
 
 # Import your files here...
@@ -272,7 +272,7 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the h
                 sub.insert(0, stateSet["BEGIN"])
                 sub.insert(-1, stateSet["END"]) 
                 results.append(sub)
-            break
+            
     file.close()
     return results
 
@@ -309,8 +309,8 @@ if __name__ == "__main__":
     # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
     # ticks2 = time.time()
     # print(ticks2 - ticks)
-    # for row in viterbi_result2:
-    #     print(row)
+    for row in viterbi_result2:
+        print(row)
 
 
 
