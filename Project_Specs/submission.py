@@ -20,231 +20,292 @@ import numpy as np
 
     A：状态转移矩阵 transition matrix
 
-    B：发射矩阵  emission matrix
+    B：发射矩阵  emission mat
     
     pi：初始隐状态向量 initial state vector
 '''
 
-# deal with state_file
 def StateFileProcessing(State_File,Smooth):
     with open (State_File,'r') as file:
-        N = int(file.readline())              # integer N , which is the number of states
-        state_set = dict()                    # store the set of state
-        transition_prob = dict()              # store transition probability  
-        state_prob = dict()                   # store state initialising probability
-        ID = 0                                # ID of states
-        #count = 0                             # number of transitions
-
-        # Scan descriptive name of the states.
+        N = int(file.readline())
+        stateSet = {}
+        matrixA = np.zeros((N, N))
+        pi = [0 for i in range(N)]
+        end = [0 for i in range(N)]
+        
+        ID = 0
         while ID < N:
-                state_name = file.readline().strip()
-                state_set[state_name] = ID
-                ID += 1
-                
-        # Scan the transitions and weight.
+            stateName = file.readline().strip()
+            stateSet[stateName] = ID
+            ID += 1
+            
         while True:
             line = file.readline()
             if not line:
                 break
             items = line.split()
-
-            state1 = int(items[0])      # The state before the transition
-            state2 = int(items[1])      # The state after the transition
-            weight = int(items[2])      # The weight of the transition
-
-            transition_prob.setdefault(state1,{})[state2] = weight
             
-        
-        # Convert weight into probability.
-        for keys,values in transition_prob.items():
-            total = 0
-            for value in values.values():
-                total += value
-            # Scan each state in state_set.
-            for state in state_set.values():
-                # Case 1: state is already existing
-                if state in values.keys():
-                    transition_prob[keys][state] = (transition_prob[keys][state] + Smooth)/(total + (N-1) * Smooth)
-                # Case 2: state is not existing
-                else:
-                    if state == state_set['BEGIN']:
-                        # For the BEGIN state, there is no transition to it, i.e., the probability is indeed 0.0.
-                        transition_prob.setdefault(keys,{})[state] = 0.0
-                    else:
-                        transition_prob.setdefault(keys,{})[state] = (1 * Smooth)/(total + (N-1) * Smooth)
-                        
-        # For the END states, there is no transition from it, i.e., the probability is indeed 0.0.
-        for state in state_set.values():
-            transition_prob.setdefault(state_set['END'],{})[state] = 0.0
-            # Initialize state probability
-            state_prob[state] = 1/N
-                        
-    file.close()
-    return N, state_set, transition_prob, state_prob 
+            statePrev = int(items[0])
+            stateNext = int(items[1])
+            frequency = int(items[2])
+            
+            matrixA[statePrev][stateNext] = frequency
 
-# deal with symbol file 
-def SymbolFileProcessing(Symbol_File, state_set,Smooth):
-    with open(Symbol_File,'r') as file:
-        M = int(file.readline())        # integer M, which is the number of symbols. M个元素
-        symbol_set = dict()             # store the set of symbol 元素的种类
-        emission_prob = dict()          # store emission probability    状态 - 种类 - 数量    
-        ID = 0    
+        for i in range(0, N):
+            if i == stateSet['END']:
+                continue
+            total = matrixA[i].sum()
+            for j in range(0, N):
+                if j == stateSet['BEGIN']:
+                    continue
+                matrixA[i][j] = (matrixA[i][j] + Smooth) / (total + (N - 1) * Smooth)
+                
+        #### PI的赋值
+        for i in range(N):
+            pi[i] = matrixA[stateSet['BEGIN']][i]
+            end[i] = matrixA[i][-1] 
         
-        # Scan descriptive name of the symbols.
+    file.close()
+    return N, stateSet, matrixA, pi, end
+
+
+# In[322]:
+
+
+def SymbolFileProcessing(Symbol_File, Smooth):
+    with open(Symbol_File,'r') as file:
+        M = int(file.readline())
+        symbolSet = {}
+        matrixB = np.zeros((M+2, M+1))
+
+        ID = 0
         while ID < M:
             symbol = file.readline().strip()
-            symbol_set[symbol] = ID
+            symbolSet[symbol] = ID
             ID += 1
-
-        # Scan the frequency of emissions.
+        symbolSet["UNK"] = ID
+        
         while True:
             line = file.readline()
             if not line:
                 break
             items = line.split()
             
-            state = int(items[0])      # The state
-            ele_type = int(items[1])      # The type of the element
-            amount = int(items[2])      # The quantity of the element
-
-            emission_prob.setdefault(state,{})[ele_type] = amount
-
-        # Convert frequency into probability.
-        for keys,values in emission_prob.items():
-            total = 0
-            for value in values.values():
-                total += value
-            # Scan each symbol in symbol_set.
-            for symbol in symbol_set.values():
-                # Case 1: symbol is already existing
-                if symbol in values.keys():
-                    emission_prob[keys][symbol] = (emission_prob[keys][symbol]+(1 * Smooth))/(total+M*Smooth+1)
-                # Case 2: symbol is not existing
-                else:   
-                    # ⚠️SMOOTH 部分需要调整                  
-                    emission_prob.setdefault(keys,{})[symbol] = 1/(total+M+1)
-            # "UNK" symbol 
-            emission_prob.setdefault(keys,{})[M] = 1/(total+M+1)    # ⚠️need to be fixed 
-
+            state = int(items[0])
+            symbol = int(items[1])
+            frequency = int(items[2])
+            
+            matrixB[state][symbol] = frequency
+            
+        for i in range(0, M):
+            total = matrixB[i].sum()
+            for j in range(0, M+1):
+                if j == ID or matrixB[i][j] == 0:
+                    matrixB[i][j] = 1 / (total + M + 1)
+                else:
+                    matrixB[i][j] = (matrixB[i][j] + (1 * Smooth)) / (total + M * Smooth + 1)
+        
     file.close()
-    return M, symbol_set, emission_prob #元素的数量，元素的名称，元素的Emission Probabilities
+    return symbolSet, matrixB
 
-# 处理query的每一行
-def query_to_token(line): 
+
+# In[323]:
+
+
+def query_to_token(line, symbolSet): 
     tokens = re.findall(r"[A-Za-z0-9.]+|[,|\.|/|;|\'|`|\[|\]|<|>|\?|:|\"|\{|\}|\~|!|@|#|\$|%|\^|&|\(|\)|\-|=|\_|\+]", line)
-    return tokens
+    Obs = [0 for i in range(len(tokens))]
+    for i in range(len(tokens)):
+        if tokens[i] in symbolSet.keys():
+            Obs[i] = symbolSet[tokens[i]]
+        else:
+            Obs[i] = symbolSet["UNK"]
+    # print(Obs)
+    return Obs
 
-# 设计viterbi内置算法
-def viterbi(N,Obs,PI,A,B):
+
+# In[667]:
+
+
+def viterbi(N,Obs,PI,END,A,B):
+    path = []
     T = len(Obs)
-    delta = np.zeros((N,T))
-    # backtracking matrix -- 用来记录到达t时刻的路径 -- list
-    # psi = [[[]] * T for i in range(N)]
-    psi = np.zeros((N,T),int)    
-  
-    # Step 1: Initialize local states when t=0.
-    delta[:,0] = PI * B[:,Obs[0]]
-    # Step 2
-    for t in range(1, T):
-    # t时刻，在状态s2确定的条件下，
-        for s2 in range(N):
-            # 遍历一次所有的状态，这些状态s1被认为是在t-1时间的结果
-            for s1 in range(N):
-                prob = delta[s1, t-1] * A[s1,s2] * B[s2,Obs[t]]
-                if prob > delta[s2, t]:
-                    delta[s2, t] = prob   # 记录最大概率值
-                    psi[s2,t] = s1
-    #最大概率
-    max_prob = max(delta.T[-1])
-    index_last = (delta.T.tolist()[-1]).index(max(delta.T.tolist()[-1]))
-    path = [index_last]
+    delta = np.zeros((N, T))
+    record = np.zeros((N, T), int)
+    psi = [[[]] * T for i in range(N)]
+
+    delta[:, 0] = PI * B[:, Obs[0]]   
+    for ts in range(1, T):       #  timeStamp
+        for sn in range(N):     #  stateNext
+            for sp in range(N):  #  statePrev
+                prob = delta[sp][ts-1] * A[sp][sn] * B[sn][Obs[ts]]
+                if prob > delta[sn][ts]:
+                    delta[sn][ts] = prob
+                    record[sn][ts] = sp
+    # 最后要乘stateEnd的概率，每个s转移到end的概率都不一样
+    # 同理，begin也是，begin到每个s的概率都不一样
+    # 最后输出概率应该是结合begin end 的概率的乘积才对
+    delta[:, -1] = END * delta[:, -1]
+
+    maxProb = 0
+    maxIndex = 0
+    for index in range(len(delta)):
+        if delta[index][-1] > maxProb:
+            maxProb = delta[index][-1]
+            maxIndex = index
+    
+    #  backtracking
+    path = [0 for i in range(T+1)]
+    path[-2] = maxIndex
     col = -1
     while True:
         if T <= -col:
             break
-        t = psi[index_last,col]
-        path.append(t)
-        index_last = t
+        maxState = record[maxIndex][col]
+        maxIndex = maxState
         col -= 1
-    path = path[::-1]
-    return path,max_prob
-
-# Question 1
-def viterbi_algorithm(State_File, Symbol_File, Query_File): # do not change the heading of the function
-    # assume smooth = 1
-    # N -- 有多少个状态
-    # state_set -- 状态集合 
-    # transition_prob -- 转移矩阵
-    # state_prob -- 初始状态概率值 π (暂时假定状态均匀分布)
-    N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
+        path[col-1] = maxState
+    path[-1] = round(np.log(maxProb),6)
     
-    # M -- 有多少个观测值
-    # symbol_set -- 观测值集合
-    # emission_prob -- 状态释放观测值的矩阵
-    M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
-    # deal with Query File.
+    return path
+
+
+# In[668]:
+
+
+def viterbi_algorithm(State_File, Symbol_File, Query_File):
+    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
+    symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
+
     results = []
     with open(Query_File, 'r') as file:
         while True:
             line = file.readline()
             if not line:
                 break
-            # 每一行进行query_to_token处理
-            token = query_to_token(line)      
+            
+            Obs = query_to_token(line, symbolSet)
+            result = viterbi(N,Obs,PI,END,A,B)
+            result.insert(0, stateSet["BEGIN"])
+            result.insert(-1, stateSet["END"])
+            results.append(result)
+    file.close()
 
-            # Generate observations and initialized state probabiltiy.
-            # M 最大值为UNK,假设所有为UNK
-            Obs = [M for i in range(len(token))]
-            #替换相应的值为对应数字
-            for i in range(len(token)):
-                if token[i] in symbol_set.keys():
-                    Obs[i] = symbol_set[token[i]]
-            # initialized transition matrix A
-            MatrixA = np.zeros((N,N))
-            # initialized emission matrix B
-            MatrixB = np.zeros((N,M+1))
-            # initialized state distribution
-            PI = [0 for i in range(N)]
-
-            for i in range(N):
-                PI[i] = state_prob[i]  
-                for j in range(N):
-                    MatrixA[i][j] = transition_prob[i][j]
-                for k in range(M+1):
-                    if i < N-2:
-                        MatrixB[i][k] = emission_prob[i][k]
-                    else:
-                        MatrixB[i][k] = 0.0
-            # claculate path and maximum probility
-            path, max_prob = viterbi(N,Obs,PI,MatrixA,MatrixB)
-            print("-----------------------------")
-            output = []
-            output.append(state_set['BEGIN'])
-            output.extend(path)
-            output.append(state_set['END'])
-            output.append(np.log(max_prob))
-            print(output)
-            results.append(output)
     return results
 
-# Question 2
-def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
-    pass # Replace this line with your implementation...
 
+# In[669]:
+
+
+State_File ='./toy_example/State_File'
+Symbol_File='./toy_example/Symbol_File'
+Query_File ='./toy_example/Query_File'
+viterbi_algorithm(State_File, Symbol_File, Query_File)
+
+
+# In[677]:
+
+
+def top_k(N,Obs,PI,END,A,B,K):
+    
+    T = len(Obs)
+    
+    delta = np.zeros((N, K, T), float)
+    record = np.zeros((N, K, T), int)
+    
+    for state in range(N):
+        delta[state, 0, 0] = PI[state] * B[state][Obs[0]] 
+        record[state, 0, 0] = state
+        
+        for k in range(1, K):
+            delta[state, k, 0] = 0.0
+            record[state, k, 0] = state
+            
+    for ts in range(1, T):
+        for sn in range(N):
+            prob_state = []
+            for sp in range(N):
+                for k in range(K):
+                    prob = delta[sp, k, ts-1] * A[sp, sn] * B[sn, Obs[ts]]
+                    state = sp
+                    prob_state.append((prob, state))
+            prob_state_sorted = sorted(prob_state, key=lambda x: x[0], reverse=True)
+            
+            for k in range(K):
+                delta[sn, k, ts] = prob_state_sorted[k][0]
+                record[sn, k, ts] = prob_state_sorted[k][1]
+                    
+    prob_state = []
+    for state in range(N):
+        for k in range(K):
+            prob = delta[state, k, T-1]
+            prob_state.append((prob, state))
+            
+    prob_state_sorted = sorted(prob_state, key=lambda x: x[0], reverse=True)
+    
+    path = [[0 for i in range(T+1)] for j in range(K)]
+    for k in range(K):
+        maxProb = prob_state_sorted[k][0]
+        maxIndex = prob_state_sorted[k][1]
+        
+        path[k][-1] = maxProb
+        path[k][-2] = maxIndex
+        col = -1
+        while True:
+            if T <= -col:
+                break
+            maxState = record[maxIndex][k][col]
+            maxIndex = maxState
+            col -= 1
+            path[k][col-1] = maxState
+        maxProb = np.log(maxProb * END[path[k][-2]])
+        path[k][-1] = round(maxProb,6)        
+        
+    return path
+
+
+# In[678]:
+
+
+def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
+    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
+    symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
+    results = [[]for i in range(k)]
+    
+    with open(Query_File, 'r') as file:
+        while True:
+            line = file.readline()
+            if not line:
+                break
+            
+            Obs = query_to_token(line, symbolSet)
+            result = top_k(N,Obs,PI,END,A,B,k)
+            for index in range(len(result)):
+                result[index].insert(0, stateSet["BEGIN"])
+                result[index].insert(-1, stateSet["END"]) 
+                results[index].append(result[index])
+    file.close()
+
+    return results
 
 # Question 3 + Bonus
 def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the heading of the function
     pass # Replace this line with your implementation...
 
+
+# In[680]:
 if __name__ == "__main__":
     State_File ='./toy_example/State_File'
     Symbol_File='./toy_example/Symbol_File'
     Query_File ='./toy_example/Query_File'
-    #N,state_set,transition_prob,state_prob = StateFileProcessing(State_File,Smooth=1)
-    #M, symbol_set, emission_prob = SymbolFileProcessing(Symbol_File,state_set,Smooth=1)
-    # token = query_to_token("8/23-35 Bar%ker St., Kings'ford, NSW&= 2032")
-    viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    # print('delta matrix:')
-    # print(result[0])
-    # print("----------------------\npai matrix:")
-    # result[1]
+    # viterbi_result = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    viterbi_result = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
+    for row in viterbi_result:
+        print(row)
+
+
+# In[ ]:
+
+
+
+
