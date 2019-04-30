@@ -72,11 +72,11 @@ def StateFileProcessing(State_File,Smooth):
 # In[322]:
 
 
-def SymbolFileProcessing(Symbol_File, Smooth):
+def SymbolFileProcessing(N, Symbol_File, Smooth):
     with open(Symbol_File,'r') as file:
         M = int(file.readline())
         symbolSet = {}
-        matrixB = np.zeros((M+2, M+1))
+        matrixB = np.zeros((N, M+1))
 
         ID = 0
         while ID < M:
@@ -97,10 +97,10 @@ def SymbolFileProcessing(Symbol_File, Smooth):
             
             matrixB[state][symbol] = frequency
             
-        for i in range(0, M):
+        for i in range(0, N):
             total = matrixB[i].sum()
             for j in range(0, M+1):
-                if j == ID or matrixB[i][j] == 0:
+                if j == ID :
                     matrixB[i][j] = 1 / (total + M + 1)
                 else:
                     matrixB[i][j] = (matrixB[i][j] + (1 * Smooth)) / (total + M * Smooth + 1)
@@ -175,7 +175,7 @@ def viterbi(N,Obs,PI,END,A,B):
 
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
     N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
-    symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
+    symbolSet, B = SymbolFileProcessing(N, Symbol_File, Smooth=1)
 
     results = []
     with open(Query_File, 'r') as file:
@@ -192,19 +192,6 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
     file.close()
 
     return results
-
-
-# In[669]:
-
-
-State_File ='./toy_example/State_File'
-Symbol_File='./toy_example/Symbol_File'
-Query_File ='./toy_example/Query_File'
-viterbi_algorithm(State_File, Symbol_File, Query_File)
-
-
-# In[677]:
-
 
 def top_k(N,Obs,PI,END,A,B,K):
     
@@ -251,6 +238,7 @@ def top_k(N,Obs,PI,END,A,B,K):
         path[k][-1] = maxProb
         path[k][-2] = maxIndex
         col = -1
+       
         while True:
             if T <= -col:
                 break
@@ -259,19 +247,15 @@ def top_k(N,Obs,PI,END,A,B,K):
             col -= 1
             path[k][col-1] = maxState
         maxProb = np.log(maxProb * END[path[k][-2]])
-        path[k][-1] = round(maxProb,6)        
+        path[k][-1] = round(maxProb,6)  
         
     return path
 
-
-# In[678]:
-
-
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
     N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
-    symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
-    results = [[]for i in range(k)]
-    
+    symbolSet, B = SymbolFileProcessing(N, Symbol_File, Smooth=1)
+    results = []
+
     with open(Query_File, 'r') as file:
         while True:
             line = file.readline()
@@ -280,12 +264,13 @@ def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the h
             
             Obs = query_to_token(line, symbolSet)
             result = top_k(N,Obs,PI,END,A,B,k)
+            
+            
             for index in range(len(result)):
                 result[index].insert(0, stateSet["BEGIN"])
                 result[index].insert(-1, stateSet["END"]) 
-                results[index].append(result[index])
+            results.append(result)
     file.close()
-
     return results
 
 # Question 3 + Bonus
@@ -293,7 +278,6 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
     pass # Replace this line with your implementation...
 
 
-# In[680]:
 if __name__ == "__main__":
     State_File ='./toy_example/State_File'
     Symbol_File='./toy_example/Symbol_File'
@@ -303,8 +287,6 @@ if __name__ == "__main__":
     for row in viterbi_result:
         print(row)
 
-
-# In[ ]:
 
 
 
