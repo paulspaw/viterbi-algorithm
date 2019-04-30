@@ -5,7 +5,8 @@
 @Author: Peng LIU, ZhiHao LI
 @LastEditors: Peng LIU
 @Date: 2019-03-29 23:14:10
-@LastEditTime: 2019-05-01 00:54:29
+@LastEditTime: 2019-05-01 05:28:03
+
 '''
 
 # Import your files here...
@@ -106,12 +107,12 @@ def SymbolFileProcessing(N, Symbol_File, Smooth):
     
 
 def query_to_token(line, symbolSet): 
-    pattern = re.compile(r"[A-Za-z0-9.]+|[,&-/()]")
-    tokens = pattern.findall(line)
-    Obs = [0 for i in range(len(tokens))]
-    for i in range(len(tokens)):
-        if tokens[i] in symbolSet.keys():
-            Obs[i] = symbolSet[tokens[i]]
+    
+    token = re.findall(r"[A-Za-z0-9.]+|[,/&()-]", line)
+    Obs = [0 for i in range(len(token))]
+    for i in range(len(token)):
+        if token[i] in symbolSet.keys():
+            Obs[i] = symbolSet[token[i]]
         else:
             Obs[i] = symbolSet["UNK"]
     print(tokens)
@@ -179,6 +180,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
             result.insert(-1, stateSet["END"])
             results.append(result)
     file.close()
+    # print(results)
     return results
 
 def top_k(N,Obs,PI,END,A,B,K):
@@ -219,6 +221,11 @@ def top_k(N,Obs,PI,END,A,B,K):
     prob_state_sorted = sorted(prob_state, key=lambda x: x[0], reverse=True)
     
     path = [[0 for i in range(T+1)] for j in range(K)]
+    # print(path)
+    print(record)
+    #### 这一部分 回溯出了问题
+    # print(path)
+
     for k in range(K):
         maxProb = prob_state_sorted[k][0]
         maxIndex = prob_state_sorted[k][1]
@@ -226,21 +233,27 @@ def top_k(N,Obs,PI,END,A,B,K):
         path[k][-1] = maxProb
         path[k][-2] = maxIndex
 
-        for t in range(T-2, -1, -1):
-            new_state = record[path[k][t+1]][k][t+1]
-            path[k][t] = new_state
-        col = -1
-       
+        col = -3
+        ns = N - 2
+        # print("ns: ",len(path[k]))
         while True:
-            if T <= -col:
-                break
-            maxState = record[maxIndex][k][col]
-            maxIndex = maxState
-            col -= 1
-            path[k][col-1] = maxState
-            
+            maxState = record[ns][maxIndex][k]
+            path[k][col] = maxState
+            print(maxState)
+        #     ns -= 1
+        #     col -= 1
+        #     maxIndex = maxState
+            # print(maxIndex)
+        # while True:
+        #     maxState = record[col][maxIndex][k]
+        #     maxIndex = maxState
+        #     path[k][col] = maxState
+        #     col -= 1
+        
+        
         maxProb = np.log(maxProb * END[path[k][-2]])
         path[k][-1] = maxProb
+    print(path)
     return path
 
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
@@ -286,19 +299,19 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
     return results
 
 if __name__ == "__main__":
-    import time;  # 引入time模块
+    # import time;  # 引入time模块
 
-    State_File ='./dev_set/State_File'
-    Symbol_File='./dev_set/Symbol_File'
-    Query_File ='./dev_set/Query_File'
+    State_File ='./toy_example/State_File'
+    Symbol_File='./toy_example/Symbol_File'
+    Query_File ='./toy_example/Query_File'
+    # ticks = time.time()
     viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    # for row in viterbi_result1:
-    #     print(row)
     # viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
     # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
     # ticks2 = time.time()
     # print(ticks2 - ticks)
-    # for row in viterbi_result1:
+    print(viterbi_result1)
+    # for row in viterbi_result2:
     #     print(row)
 
 
