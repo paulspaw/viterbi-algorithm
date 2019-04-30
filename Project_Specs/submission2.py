@@ -8,6 +8,7 @@ def StateFileProcessing(State_File,Smooth):
         stateSet = {}
         matrixA = np.zeros((N, N))
         pi = [0 for i in range(N)]
+        end = [0 for i in range(N)]
         
         ID = 0
         while ID < N:
@@ -38,10 +39,11 @@ def StateFileProcessing(State_File,Smooth):
                 
         #### PI的赋值
         for i in range(N):
-            pi[i] = matrixA[stateSet['BEGIN']][i]        
+            pi[i] = matrixA[stateSet['BEGIN']][i]
+            end[i] = matrixA[i][-1] 
         
     file.close()
-    return N, stateSet, matrixA, pi
+    return N, stateSet, matrixA, pi, end
 
 def SymbolFileProcessing(Symbol_File, Smooth):
     with open(Symbol_File,'r') as file:
@@ -90,19 +92,14 @@ def query_to_token(line, symbolSet):
     # print(Obs)
     return Obs
 
-def viterbi(N,Obs,PI,A,B):
+def viterbi(N,Obs,PI,END,A,B):
     path = []
     T = len(Obs)
     delta = np.zeros((N, T))
     record = np.zeros((N, T), int)
     psi = [[[]] * T for i in range(N)]
 
-    delta[:, 0] = PI * B[:, Obs[0]]
-    
-    #### 明天看看这里 还有前面的PI赋值
-    end = [0 for i in range(N)]
-    for i in range(N):
-        end[i] = A[i][-1]
+    delta[:, 0] = PI * B[:, Obs[0]]   
     for ts in range(1, T):       #  timeStamp
         for sn in range(N):     #  stateNext
             for sp in range(N):  #  statePrev
@@ -110,15 +107,16 @@ def viterbi(N,Obs,PI,A,B):
                 if prob > delta[sn][ts]:
                     delta[sn][ts] = prob
                     record[sn][ts] = sp
-    # print(psi)
+    # 最后要乘stateEnd的概率，每个s转移到end的概率都不一样
+    # 同理，begin也是，begin到每个s的概率都不一样
+    # 最后输出概率应该是结合begin end 的概率的乘积才对
+    delta[:, -1] = END * delta[:, -1]
+
     maxProb = 0
     maxIndex = 0
     for index in range(len(delta)):
         if delta[index][-1] > maxProb:
-            #### 最后要乘stateEnd的概率，每个s转移到end的概率都不一样
-            #### 同理，begin也是，begin到每个s的概率都不一样
-            #### 最后输出概率应该是结合begin end 的概率的乘积才对
-            maxProb = delta[index][-1] * end[index]
+            maxProb = delta[index][-1]
             maxIndex = index
     
     #  backtracking
@@ -138,7 +136,7 @@ def viterbi(N,Obs,PI,A,B):
 
 # Question 1
 def viterbi_algorithm(State_File, Symbol_File, Query_File):
-    N, stateSet, A, PI = StateFileProcessing(State_File,Smooth=1)
+    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
     symbolSet, B = SymbolFileProcessing(Symbol_File, Smooth=1)
 
     results = []
@@ -149,7 +147,7 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
                 break
             
             Obs = query_to_token(line, symbolSet)
-            result = viterbi(N,Obs,PI,A,B)
+            result = viterbi(N,Obs,PI,END,A,B)
             result.insert(0, stateSet["BEGIN"])
             result.insert(-1, stateSet["END"])
             results.append(result)
