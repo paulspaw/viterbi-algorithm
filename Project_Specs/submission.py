@@ -170,21 +170,17 @@ def top_k(N,Obs,PI,END,A,B,K):
 
     T = len(Obs)
     delta = np.zeros((T, N, K))
-    phi = np.zeros((T, N, K), int)
+    record = np.zeros((T, N, K), int)
     rank = np.zeros((T, N, K), int)
 
-    # init
     for i in range(N):
         delta[0, i, 0] = PI[i] * B[i, Obs[0]]
-        phi[0, i, 0] = i
+        record[0, i, 0] = i
 
-        #Set the other options to 0 initially
         for k in range(1, K):
             delta[0, i, k] = 0.0
-            phi[0, i, k] = i
+            record[0, i, k] = i
 
-    #Go forward calculating top k scoring paths
-    # for each state s1 from previous state s2 at time step t
     for t in range(1, T):
         for s2 in range(N):
             tmp = []
@@ -193,13 +189,12 @@ def top_k(N,Obs,PI,END,A,B,K):
                     prob = delta[t - 1, s1, k] * A[s1, s2] * B[s2, Obs[t]]
                     state = s1
                     tmp.append((prob, state))
+                    
             tmp_sorted = sorted(tmp, key=lambda x: x[0], reverse=True)
-
-            #We need to keep a ranking if a path crosses a state more than once
             rankDict = dict()
             for k in range(0, K):
                 delta[t, s2, k] = tmp_sorted[k][0]
-                phi[t, s2, k] = tmp_sorted[k][1]
+                record[t, s2, k] = tmp_sorted[k][1]
                 state = tmp_sorted[k][1]
                 if state in rankDict:
                     rankDict[state] = rankDict[state] + 1
@@ -229,7 +224,7 @@ def top_k(N,Obs,PI,END,A,B,K):
 
         for t in range(T - 2, -1, -1):
             nextState = path[k][t+1]
-            p = phi[t+1][nextState][rankK]
+            p = record[t+1][nextState][rankK]
             path[k][t] = p
             rankK = rank[t + 1][nextState][rankK]
 
