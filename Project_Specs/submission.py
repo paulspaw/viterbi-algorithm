@@ -12,7 +12,6 @@
 # Import your files here...
 import re
 import numpy as np
-import heapq
 
 '''
     N：隐藏状态数 hidden states
@@ -224,7 +223,7 @@ def top_k(N,obs,pi,END,a,b,topK):
                 else:
                     rankDict[state] = 0
                 rank[t, s2, k] = rankDict[state]
-                
+
     for k in range(topK):
         for i in range(nStates):
             delta[-1, i, k] = END[i] * delta[-1, i, k]
