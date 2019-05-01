@@ -207,6 +207,11 @@ def top_k(N,Obs,PI,END,A,B,K):
                     rankDict[state] = 0
                 rank[t, s2, k] = rankDict[state]
 
+    print(delta)
+    print(phi)
+    print(rank)
+    print()
+
     for k in range(K):
         for i in range(N):
             delta[-1, i, k] = END[i] * delta[-1, i, k]
@@ -218,6 +223,8 @@ def top_k(N,Obs,PI,END,A,B,K):
             tmp.append((prob, s, k))
     tmp_sorted = sorted(tmp, key=lambda x: x[0], reverse=True)
 
+    print(tmp_sorted)
+
     path = [[0 for i in range(T)] for j in range(K)]
     prob = []
     for k in range(K):
@@ -228,10 +235,10 @@ def top_k(N,Obs,PI,END,A,B,K):
         path[k][-1] = state
 
         for t in range(T - 2, -1, -1):
-            nextState = path[k][t+1]
-            p = phi[t+1][nextState][rankK]
+            nextState = path[k][t+1]         # backtrack to prev state
+            p = phi[t+1][nextState][rankK]   # backtrack to prev p
             path[k][t] = p
-            rankK = rank[t + 1][nextState][rankK]
+            rankK = rank[t + 1][nextState][rankK] # backtrack to prev rankk
 
     return path, prob
 
@@ -298,18 +305,18 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
 
     return results
 
-# if __name__ == "__main__":
-#     # import time;  # 引入time模块
+if __name__ == "__main__":
+    # import time;  # 引入time模块
 
-#     State_File ='./dev_set/State_File'
-#     Symbol_File='./dev_set/Symbol_File'
-#     Query_File ='./dev_set/Query_File'
-#     # ticks = time.time()
-#     viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
-#     # viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
-#     # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
-#     # ticks2 = time.time()
-#     # print(ticks2 - ticks)
-#     # print(viterbi_result2)
-#     for row in viterbi_result1:
-#         print(row)
+    State_File ='./toy_example/State_File'
+    Symbol_File='./toy_example/Symbol_File'
+    Query_File ='./toy_example/Query_File'
+    # ticks = time.time()
+    # viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
+    # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
+    # ticks2 = time.time()
+    # print(ticks2 - ticks)
+    # print(viterbi_result2)
+    for row in viterbi_result2:
+        print(row)
