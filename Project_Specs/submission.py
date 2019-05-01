@@ -228,8 +228,6 @@ def top_k(N,obs,pi,END,a,b,topK):
         for i in range(nStates):
             delta[-1, i, k] = END[i] * delta[-1, i, k]
     
-
-    # Put all the last items on the stack
     tmp = []
     for s in range(nStates):
         for k in range(topK):
@@ -298,21 +296,21 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
 
     return results
 
-if __name__ == "__main__":
-    # import time;  # 引入time模块
+# if __name__ == "__main__":
+#     # import time;  # 引入time模块
 
-    State_File ='./toy_example/State_File'
-    Symbol_File='./toy_example/Symbol_File'
-    Query_File ='./toy_example/Query_File'
-    # ticks = time.time()
-    # viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
-    # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
-    # ticks2 = time.time()
-    # print(ticks2 - ticks)
-    # print(viterbi_result2)
-    for row in viterbi_result2:
-        print(row)
+#     State_File ='./toy_example/State_File'
+#     Symbol_File='./toy_example/Symbol_File'
+#     Query_File ='./toy_example/Query_File'
+#     # ticks = time.time()
+#     # viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
+#     viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
+#     # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
+#     # ticks2 = time.time()
+#     # print(ticks2 - ticks)
+#     # print(viterbi_result2)
+#     for row in viterbi_result2:
+#         print(row)
 
 
 
