@@ -180,41 +180,40 @@ def viterbi_algorithm(State_File, Symbol_File, Query_File):
     file.close()
     return results
 
-def top_k(N,obs,pi,END,a,b,topK):
-    if topK == 1:
+def top_k(N,Obs,PI,END,A,B,K):
+    if K == 1:
         return 1, 1
 
-    nStates = N
-    T = len(obs)
-    delta = np.zeros((T, nStates, topK))
-    phi = np.zeros((T, nStates, topK), int)
-    rank = np.zeros((T, nStates, topK), int)
+    T = len(Obs)
+    delta = np.zeros((T, N, K))
+    phi = np.zeros((T, N, K), int)
+    rank = np.zeros((T, N, K), int)
 
     # init
-    for i in range(nStates):
-        delta[0, i, 0] = pi[i] * b[i, obs[0]]
+    for i in range(N):
+        delta[0, i, 0] = PI[i] * B[i, Obs[0]]
         phi[0, i, 0] = i
 
         #Set the other options to 0 initially
-        for k in range(1, topK):
+        for k in range(1, K):
             delta[0, i, k] = 0.0
             phi[0, i, k] = i
 
     #Go forward calculating top k scoring paths
     # for each state s1 from previous state s2 at time step t
     for t in range(1, T):
-        for s2 in range(nStates):
+        for s2 in range(N):
             tmp = []
-            for s1 in range(nStates):
-                for k in range(topK):
-                    prob = delta[t - 1, s1, k] * a[s1, s2] * b[s2, obs[t]]
+            for s1 in range(N):
+                for k in range(K):
+                    prob = delta[t - 1, s1, k] * A[s1, s2] * B[s2, Obs[t]]
                     state = s1
                     tmp.append((prob, state))
             tmp_sorted = sorted(tmp, key=lambda x: x[0], reverse=True)
 
             #We need to keep a ranking if a path crosses a state more than once
             rankDict = dict()
-            for k in range(0, topK):
+            for k in range(0, K):
                 delta[t, s2, k] = tmp_sorted[k][0]
                 phi[t, s2, k] = tmp_sorted[k][1]
                 state = tmp_sorted[k][1]
@@ -224,20 +223,20 @@ def top_k(N,obs,pi,END,a,b,topK):
                     rankDict[state] = 0
                 rank[t, s2, k] = rankDict[state]
 
-    for k in range(topK):
-        for i in range(nStates):
+    for k in range(K):
+        for i in range(N):
             delta[-1, i, k] = END[i] * delta[-1, i, k]
     
     tmp = []
-    for s in range(nStates):
-        for k in range(topK):
+    for s in range(N):
+        for k in range(K):
             prob = delta[T - 1, s, k]
             tmp.append((prob, s, k))
     tmp_sorted = sorted(tmp, key=lambda x: x[0], reverse=True)
 
-    path = [[0 for i in range(T)] for j in range(topK)]
+    path = [[0 for i in range(T)] for j in range(K)]
     prob = []
-    for k in range(topK):
+    for k in range(K):
         max_prob = tmp_sorted[k][0]
         state = tmp_sorted[k][1]
         rankK = tmp_sorted[k][2]
@@ -296,21 +295,21 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
 
     return results
 
-# if __name__ == "__main__":
-#     # import time;  # 引入time模块
+if __name__ == "__main__":
+    # import time;  # 引入time模块
 
-#     State_File ='./toy_example/State_File'
-#     Symbol_File='./toy_example/Symbol_File'
-#     Query_File ='./toy_example/Query_File'
-#     # ticks = time.time()
-#     # viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
-#     viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
-#     # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
-#     # ticks2 = time.time()
-#     # print(ticks2 - ticks)
-#     # print(viterbi_result2)
-#     for row in viterbi_result2:
-#         print(row)
+    State_File ='./toy_example/State_File'
+    Symbol_File='./toy_example/Symbol_File'
+    Query_File ='./toy_example/Query_File'
+    # ticks = time.time()
+    # viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
+    viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
+    # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
+    # ticks2 = time.time()
+    # print(ticks2 - ticks)
+    # print(viterbi_result2)
+    for row in viterbi_result2:
+        print(row)
 
 
 
