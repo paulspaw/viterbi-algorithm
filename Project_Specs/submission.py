@@ -115,7 +115,7 @@ def query_to_token(line, symbolSet):
             Obs[i] = symbolSet[token[i]]
         else:
             Obs[i] = symbolSet["UNK"]
-    print(tokens)
+    
     # print(Obs)
     return Obs
 
