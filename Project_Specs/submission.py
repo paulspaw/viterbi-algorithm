@@ -106,17 +106,22 @@ def SymbolFileProcessing(N, Symbol_File, Smooth):
     return symbolSet, matrixB
     
 
-def query_to_token(line, symbolSet): 
-    
-    token = re.findall(r"[A-Za-z0-9.]+|[,/&()-]", line)
-    Obs = [0 for i in range(len(token))]
+def query_to_token(line,symbolSet): 
+    token = re.split("([ ,()/&-])",line)
+    tokens = []
     for i in range(len(token)):
-        if token[i] in symbolSet.keys():
-            Obs[i] = symbolSet[token[i]]
+        if token[i] != ' ' and token[i] != '':
+            tokens.append(token[i].strip())
+
+    # token = re.findall(r"[A-Za-z0-9.]+|[,/&()-]", line)
+    Obs = [0 for i in range(len(tokens))]
+    for i in range(len(tokens)):
+        if tokens[i] in symbolSet.keys():
+            Obs[i] = symbolSet[tokens[i]]
         else:
             Obs[i] = symbolSet["UNK"]
     
-    # print(Obs)
+    # print(tokens)
     return Obs
 
 
@@ -157,28 +162,7 @@ def viterbi(N,Obs,PI,END,A,B):
         col -= 1
         path[col-1] = maxState
     path[-1] = np.log(maxProb)
-    
     return path
-
-
-def viterbi_algorithm(State_File, Symbol_File, Query_File):
-    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
-    symbolSet, B = SymbolFileProcessing(N, Symbol_File, Smooth=1)
-
-    results = []
-    with open(Query_File, 'r') as file:
-        while True:
-            line = file.readline().strip('\n')
-            if not line:
-                break
-            
-            Obs = query_to_token(line, symbolSet)
-            result = viterbi(N,Obs,PI,END,A,B)
-            result.insert(0, stateSet["BEGIN"])
-            result.insert(-1, stateSet["END"])
-            results.append(result)
-    file.close()
-    return results
 
 def top_k(N,Obs,PI,END,A,B,K):
     if K == 1:
@@ -251,6 +235,25 @@ def top_k(N,Obs,PI,END,A,B,K):
 
     return path, prob
 
+def viterbi_algorithm(State_File, Symbol_File, Query_File):
+    N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
+    symbolSet, B = SymbolFileProcessing(N, Symbol_File, Smooth=1)
+
+    results = []
+    with open(Query_File, 'r') as file:
+        while True:
+            line = file.readline().strip('\n')
+            if not line:
+                break
+            
+            Obs = query_to_token(line, symbolSet)
+            result = viterbi(N,Obs,PI,END,A,B)
+            result.insert(0, stateSet["BEGIN"])
+            result.insert(-1, stateSet["END"])
+            results.append(result)
+    file.close()
+    return results
+
 def top_k_viterbi(State_File, Symbol_File, Query_File, k): # do not change the heading of the function
     N, stateSet, A, PI, END = StateFileProcessing(State_File,Smooth=1)
     symbolSet, B = SymbolFileProcessing(N, Symbol_File, Smooth=1)
@@ -295,21 +298,21 @@ def advanced_decoding(State_File, Symbol_File, Query_File): # do not change the 
 
     return results
 
-if __name__ == "__main__":
-    # import time;  # 引入time模块
+# if __name__ == "__main__":
+#     # import time;  # 引入time模块
 
-    State_File ='./toy_example/State_File'
-    Symbol_File='./toy_example/Symbol_File'
-    Query_File ='./toy_example/Query_File'
-    # ticks = time.time()
-    # viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
-    viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
-    # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
-    # ticks2 = time.time()
-    # print(ticks2 - ticks)
-    # print(viterbi_result2)
-    for row in viterbi_result2:
-        print(row)
+#     State_File ='./dev_set/State_File'
+#     Symbol_File='./dev_set/Symbol_File'
+#     Query_File ='./dev_set/Query_File'
+#     # ticks = time.time()
+#     viterbi_result1 = viterbi_algorithm(State_File, Symbol_File, Query_File)
+#     # viterbi_result2 = top_k_viterbi(State_File, Symbol_File, Query_File, k=2)
+#     # viterbi_result3 = advanced_decoding(State_File, Symbol_File, Query_File)
+#     # ticks2 = time.time()
+#     # print(ticks2 - ticks)
+#     # print(viterbi_result2)
+#     for row in viterbi_result1:
+#         print(row)
 
 
 
